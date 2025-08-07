@@ -1,3 +1,15 @@
+let loginForm, loginScreen, app, userInfo, filialDisplay, logoutBtn, navTabs, tabContents;
+let prevMonthBtn, nextMonthBtn, currentMonthDisplay, calendarGrid;
+let employeesTable, goalsLevel1, goalsLevel2, goalsLevel3;
+let branchesTable, salesHistoryTable;
+let totalSalesDisplay, salesGoalDisplay, salesProgressBar, salesPercentageDisplay;
+let salesPeriodSelect, salesStartDate, salesEndDate, customDateRange;
+let addEventBtn, addGoalBtn, importSalesBtn;
+let addEventModal, viewEventModal, addSalesModal, importSalesModal;
+let eventGoalSelect, eventAssigneeSelect;
+let adminOnlyElements, closeModalButtons;
+
+
 // Helper Functions
 function formatDate(date) {
     const options = { year: 'numeric', month: 'long', day: 'numeric' };
