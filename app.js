@@ -1,3 +1,6 @@
+/* app.js corrigido e padronizado */
+
+// Declaração global de variáveis (com let)
 let loginForm, loginScreen, app, userInfo, filialDisplay, logoutBtn, navTabs, tabContents;
 let prevMonthBtn, nextMonthBtn, currentMonthDisplay, calendarGrid;
 let employeesTable, goalsLevel1, goalsLevel2, goalsLevel3;
@@ -597,44 +600,48 @@ function showAddSalesModal() {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-    // Get DOM elements
-    const loginForm = document.getElementById('login-form');
-    const loginScreen = document.getElementById('login-screen');
-    const app = document.getElementById('app');
-    const userInfo = document.getElementById('user-info');
-    const filialDisplay = document.getElementById('filial-display');
-    const logoutBtn = document.getElementById('logout-btn');
-    const navTabs = document.querySelectorAll('.nav-tab');
-    const tabContents = document.querySelectorAll('.tab-content');
-    const prevMonthBtn = document.getElementById('prev-month');
-    const nextMonthBtn = document.getElementById('next-month');
-    const currentMonthDisplay = document.getElementById('current-month');
-    const calendarGrid = document.getElementById('calendar-grid');
-    const employeesTable = document.getElementById('employees-table');
-    const goalsLevel1 = document.getElementById('goals-level-1');
-    const goalsLevel2 = document.getElementById('goals-level-2');
-    const goalsLevel3 = document.getElementById('goals-level-3');
-    const branchesTable = document.getElementById('branches-table');
-    const salesHistoryTable = document.getElementById('sales-history-table');
-    const totalSalesDisplay = document.getElementById('total-sales');
-    const salesGoalDisplay = document.getElementById('sales-goal');
-    const salesProgressBar = document.getElementById('sales-progress');
-    const salesPercentageDisplay = document.getElementById('sales-percentage');
-    const salesPeriodSelect = document.getElementById('sales-period');
-    const salesStartDate = document.getElementById('sales-start-date');
-    const salesEndDate = document.getElementById('sales-end-date');
-    const customDateRange = document.getElementById('custom-date-range');
-    const addEventBtn = document.getElementById('add-event-btn');
-    const addGoalBtn = document.getElementById('add-goal-btn');
-    const importSalesBtn = document.getElementById('import-sales-btn');
-    const addEventModal = document.getElementById('add-event-modal');
-    const viewEventModal = document.getElementById('view-event-modal');
-    const addSalesModal = document.getElementById('add-sales-modal');
-    const importSalesModal = document.getElementById('import-sales-modal');
-    const eventGoalSelect = document.getElementById('event-goal');
-    const eventAssigneeSelect = document.getElementById('event-assignee');
-    const adminOnlyElements = document.querySelectorAll('.admin-only');
-    const closeModalButtons = document.querySelectorAll('.close-modal');
+  loginForm = document.getElementById('login-form');
+  loginScreen = document.getElementById('login-screen');
+  app = document.getElementById('app');
+  userInfo = document.getElementById('user-info');
+  filialDisplay = document.getElementById('filial-display');
+  logoutBtn = document.getElementById('logout-btn');
+  navTabs = document.querySelectorAll('.nav-tab');
+  tabContents = document.querySelectorAll('.tab-content');
+  prevMonthBtn = document.getElementById('prev-month');
+  nextMonthBtn = document.getElementById('next-month');
+  currentMonthDisplay = document.getElementById('current-month');
+  calendarGrid = document.getElementById('calendar-grid');
+  employeesTable = document.getElementById('employees-table');
+  goalsLevel1 = document.getElementById('goals-level-1');
+  goalsLevel2 = document.getElementById('goals-level-2');
+  goalsLevel3 = document.getElementById('goals-level-3');
+  branchesTable = document.getElementById('branches-table');
+  salesHistoryTable = document.getElementById('sales-history-table');
+  totalSalesDisplay = document.getElementById('total-sales');
+  salesGoalDisplay = document.getElementById('sales-goal');
+  salesProgressBar = document.getElementById('sales-progress');
+  salesPercentageDisplay = document.getElementById('sales-percentage');
+  salesPeriodSelect = document.getElementById('sales-period');
+  salesStartDate = document.getElementById('sales-start-date');
+  salesEndDate = document.getElementById('sales-end-date');
+  customDateRange = document.getElementById('custom-date-range');
+  addEventBtn = document.getElementById('add-event-btn');
+  addGoalBtn = document.getElementById('add-goal-btn');
+  importSalesBtn = document.getElementById('import-sales-btn');
+  addEventModal = document.getElementById('add-event-modal');
+  viewEventModal = document.getElementById('view-event-modal');
+  addSalesModal = document.getElementById('add-sales-modal');
+  importSalesModal = document.getElementById('import-sales-modal');
+  eventGoalSelect = document.getElementById('event-goal');
+  eventAssigneeSelect = document.getElementById('event-assignee');
+  adminOnlyElements = document.querySelectorAll('.admin-only');
+  closeModalButtons = document.querySelectorAll('.close-modal');
+
+  // Agora pode executar as funções iniciais normalmente
+  updateAdminVisibility();
+});
+
     
     // Login Form
     loginForm.addEventListener('submit', (e) => {
