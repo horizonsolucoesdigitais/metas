@@ -1,1066 +1,139 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema de Metas e Recompensas</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sistema de Metas</title>
+  <link rel="stylesheet" href="styles.css"/>
+  <script src="https://kit.fontawesome.com/yourkit.js" crossorigin="anonymous"></script> <!-- Substitua por seu kit do FontAwesome -->
 </head>
-<body class="bg-white">
-    <!-- Login Screen -->
-    <div id="login-screen" class="fixed inset-0 bg-white z-50 flex items-center justify-center">
-        <div class="w-full max-w-md p-8 bg-white rounded-lg shadow-lg">
-            <div class="text-center mb-8">
-                <h1 class="text-3xl font-bold">Sistema de Metas</h1>
-                <p class="text-gray-600 mt-2">Faça login para continuar</p>
-            </div>
-            <form id="login-form" class="space-y-6">
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700 mb-1">Usuário</label>
-                    <input type="text" id="username" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black" required>
-                </div>
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
-                    <input type="password" id="password" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black" required>
-                </div>
-                <div>
-                    <label for="filial-select" class="block text-sm font-medium text-gray-700 mb-1">Filial</label>
-                    <select id="filial-select" class="w-full px-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-black">
-                        <option value="matriz">Matriz</option>
-                        <option value="filial1">Filial 1</option>
-                        <option value="filial2">Filial 2</option>
-                    </select>
-                </div>
-                <button type="submit" class="w-full py-2 px-4 bg-black text-white rounded-md hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-black focus:ring-offset-2">
-                    Entrar
-                </button>
-                <div class="text-center mt-4">
-                    <p class="text-sm text-gray-600">
-                        Credenciais de teste: admin/admin (administrador) ou user/user (colaborador)
-                    </p>
-                </div>
-            </form>
-        </div>
+<body>
+  <!-- Login -->
+  <div id="login-screen">
+    <form id="login-form">
+      <input id="username" type="text" placeholder="Usuário" required />
+      <input id="password" type="password" placeholder="Senha" required />
+      <select id="filial-select">
+        <option value="matriz">Matriz</option>
+        <option value="filial1">Filial 1</option>
+        <option value="filial2">Filial 2</option>
+      </select>
+      <button type="submit">Entrar</button>
+    </form>
+  </div>
+
+  <!-- Sistema -->
+  <div id="app" class="hidden">
+    <div id="user-info"></div>
+    <div id="filial-display"></div>
+    <button id="logout-btn">Sair</button>
+
+    <!-- Navegação -->
+    <nav>
+      <button class="nav-tab" data-tab="calendar">Calendário</button>
+      <button class="nav-tab" data-tab="employees">Colaboradores</button>
+      <button class="nav-tab" data-tab="goals">Metas</button>
+      <button class="nav-tab admin-only" data-tab="branches">Filiais</button>
+      <button class="nav-tab admin-only" data-tab="sales">Vendas</button>
+    </nav>
+
+    <!-- Abas -->
+    <div id="calendar-tab" class="tab-content">
+      <div>
+        <button id="prev-month">&lt;</button>
+        <span id="current-month"></span>
+        <button id="next-month">&gt;</button>
+        <button id="add-event-btn">+ Ação</button>
+      </div>
+      <div id="calendar-grid" class="grid grid-cols-7 gap-1"></div>
     </div>
 
-    <!-- Main App -->
-    <div id="app" class="hidden min-h-screen flex flex-col">
-        <!-- Header -->
-        <header class="bg-white border-b border-gray-200">
-            <div class="container mx-auto px-4 py-4 flex justify-between items-center">
-                <div class="flex items-center space-x-4">
-                    <h1 class="text-xl font-bold">Sistema de Metas</h1>
-                    <div id="filial-display" class="text-sm font-medium bg-gray-100 px-3 py-1 rounded-full">
-                        Matriz
-                    </div>
-                </div>
-                <div class="flex items-center space-x-6">
-                    <div id="user-info" class="text-sm font-medium"></div>
-                    <button id="logout-btn" class="text-sm text-gray-600 hover:text-black">
-                        <i class="fas fa-sign-out-alt mr-1"></i> Sair
-                    </button>
-                </div>
-            </div>
-        </header>
-
-        <!-- Navigation -->
-        <nav class="bg-white border-b border-gray-200">
-            <div class="container mx-auto px-4">
-                <div class="flex space-x-8">
-                    <button class="nav-tab tab-active py-4 px-2" data-tab="calendar">Calendário</button>
-                    <button class="nav-tab py-4 px-2" data-tab="employees">Colaboradores</button>
-                    <button class="nav-tab py-4 px-2" data-tab="goals">Metas</button>
-                    <button class="nav-tab py-4 px-2" data-tab="sales">Vendas</button>
-                    <button class="nav-tab py-4 px-2 admin-only hidden" data-tab="branches">Filiais</button>
-                    <button class="nav-tab py-4 px-2 admin-only hidden" data-tab="settings">Configurações</button>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Main Content -->
-        <main class="flex-grow container mx-auto px-4 py-6">
-            <!-- Calendar Tab -->
-            <div id="calendar-tab" class="tab-content">
-                <div class="flex justify-between items-center mb-6">
-                    <div class="flex items-center space-x-4">
-                        <h2 class="text-2xl font-bold">Calendário de Metas</h2>
-                        <div id="current-month" class="text-lg font-medium"></div>
-                    </div>
-                    <div class="flex space-x-2">
-                        <button id="prev-month" class="p-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                            <i class="fas fa-chevron-left"></i>
-                        </button>
-                        <button id="next-month" class="p-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                            <i class="fas fa-chevron-right"></i>
-                        </button>
-                        <button id="add-event-btn" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                            <i class="fas fa-plus mr-1"></i> Adicionar Ação
-                        </button>
-                    </div>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="grid grid-cols-7 bg-gray-100 border-b border-gray-200">
-                        <div class="py-2 text-center font-medium text-sm">Domingo</div>
-                        <div class="py-2 text-center font-medium text-sm">Segunda</div>
-                        <div class="py-2 text-center font-medium text-sm">Terça</div>
-                        <div class="py-2 text-center font-medium text-sm">Quarta</div>
-                        <div class="py-2 text-center font-medium text-sm">Quinta</div>
-                        <div class="py-2 text-center font-medium text-sm">Sexta</div>
-                        <div class="py-2 text-center font-medium text-sm">Sábado</div>
-                    </div>
-                    <div id="calendar-grid" class="grid grid-cols-7 border-b border-gray-200"></div>
-                </div>
-            </div>
-
-            <!-- Employees Tab -->
-            <div id="employees-tab" class="tab-content hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Colaboradores</h2>
-                    <button id="add-employee-btn" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 admin-only hidden">
-                        <i class="fas fa-plus mr-1"></i> Adicionar Colaborador
-                    </button>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Idade</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cargo</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data de Entrada</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metas Concluídas</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Recompensas</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="employees-table" class="bg-white divide-y divide-gray-200"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Goals Tab -->
-            <div id="goals-tab" class="tab-content hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Metas</h2>
-                    <button id="add-goal-btn" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 admin-only hidden">
-                        <i class="fas fa-plus mr-1"></i> Adicionar Meta
-                    </button>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div class="bg-white rounded-lg shadow-sm p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold">Metas Nível 1</h3>
-                            <span class="badge badge-level-1">Nível 1</span>
-                        </div>
-                        <div id="goals-level-1" class="space-y-4"></div>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow-sm p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold">Metas Nível 2</h3>
-                            <span class="badge badge-level-2">Nível 2</span>
-                        </div>
-                        <div id="goals-level-2" class="space-y-4"></div>
-                    </div>
-
-                    <div class="bg-white rounded-lg shadow-sm p-6">
-                        <div class="flex justify-between items-center mb-4">
-                            <h3 class="text-lg font-semibold">Metas Nível 3</h3>
-                            <span class="badge badge-level-3">Nível 3</span>
-                        </div>
-                        <div id="goals-level-3" class="space-y-4"></div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Sales Tab -->
-            <div id="sales-tab" class="tab-content hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Vendas</h2>
-                    <div class="flex space-x-2">
-                        <button id="import-sales-btn" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                            <i class="fas fa-file-import mr-1"></i> Importar Vendas
-                        </button>
-                        <button id="export-sales-btn" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                            <i class="fas fa-file-export mr-1"></i> Exportar Vendas
-                        </button>
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    <div class="bg-white rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold mb-4">Resumo de Vendas</h3>
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <label class="block text-sm font-medium text-gray-700 mb-1">Período</label>
-                                <div class="flex space-x-2">
-                                    <select id="sales-period" class="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black">
-                                        <option value="day">Hoje</option>
-                                        <option value="week">Esta Semana</option>
-                                        <option value="month" selected>Este Mês</option>
-                                        <option value="quarter">Este Trimestre</option>
-                                        <option value="year">Este Ano</option>
-                                        <option value="custom">Personalizado</option>
-                                    </select>
-                                    <button id="refresh-sales-btn" class="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                                        <i class="fas fa-sync-alt"></i>
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div id="custom-date-range" class="hidden">
-                                <div class="grid grid-cols-2 gap-2">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Inicial</label>
-                                        <input type="date" id="sales-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black">
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Data Final</label>
-                                        <input type="date" id="sales-end-date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <p class="text-sm text-gray-500 mb-1">Total de Vendas</p>
-                                    <p id="total-sales" class="text-2xl font-bold">R$ 0,00</p>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <p class="text-sm text-gray-500 mb-1">Meta</p>
-                                    <p id="sales-goal" class="text-2xl font-bold">R$ 0,00</p>
-                                </div>
-                                <div class="bg-gray-50 p-4 rounded-lg">
-                                    <p class="text-sm text-gray-500 mb-1">Progresso</p>
-                                    <div class="flex items-center">
-                                        <div class="flex-1 mr-2">
-                                            <div class="progress-bar">
-                                                <div id="sales-progress" class="progress-fill" style="width: 0%"></div>
-                                            </div>
-                                        </div>
-                                        <p id="sales-percentage" class="text-sm font-medium">0%</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold mb-4">Vendas por Filial</h3>
-                        
-                        <div class="space-y-4">
-                            <div class="overflow-x-auto">
-                                <table class="min-w-full divide-y divide-gray-200">
-                                    <thead class="bg-gray-100">
-                                        <tr>
-                                            <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filial</th>
-                                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Vendas</th>
-                                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Meta</th>
-                                            <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Progresso</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="branch-sales-table" class="bg-white divide-y divide-gray-200">
-                                        <tr>
-                                            <td class="px-4 py-3 whitespace-nowrap">
-                                                <div class="font-medium">Matriz</div>
-                                            </td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right">R$ 45.000,00</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right">R$ 50.000,00</td>
-                                            <td class="px-4 py-3 whitespace-nowrap">
-                                                <div class="flex items-center">
-                                                    <div class="flex-1 mr-2">
-                                                        <div class="progress-bar">
-                                                            <div class="progress-fill" style="width: 90%"></div>
-                                                        </div>
-                                                    </div>
-                                                    <span class="text-sm font-medium">90%</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td class="px-4 py-3 whitespace-nowrap">
-                                                <div class="font-medium">Filial 1</div>
-                                            </td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right">R$ 28.500,00</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right">R$ 30.000,00</td>
-                                            <td class="px-4 py-3 whitespace-nowrap">
-                                                <div class="flex items-center">
-                                                    <div class="flex-1 mr-2">
-                                                        <div class="progress-bar">
-                                                            <div class="progress-fill" style="width: 95%"></div>
-                                                        </div>
-                                                    </div>
-                                                    <span class="text-sm font-medium">95%</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td class="px-4 py-3 whitespace-nowrap">
-                                                <div class="font-medium">Filial 2</div>
-                                            </td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right">R$ 18.200,00</td>
-                                            <td class="px-4 py-3 whitespace-nowrap text-right">R$ 25.000,00</td>
-                                            <td class="px-4 py-3 whitespace-nowrap">
-                                                <div class="flex items-center">
-                                                    <div class="flex-1 mr-2">
-                                                        <div class="progress-bar">
-                                                            <div class="progress-fill" style="width: 73%"></div>
-                                                        </div>
-                                                    </div>
-                                                    <span class="text-sm font-medium">73%</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    </tbody>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-lg shadow-sm p-6 lg:col-span-2">
-                        <h3 class="text-lg font-semibold mb-4">Histórico de Vendas</h3>
-                        
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200">
-                                <thead class="bg-gray-100">
-                                    <tr>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Data</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filial</th>
-                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Valor</th>
-                                        <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Origem</th>
-                                        <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="sales-history-table" class="bg-white divide-y divide-gray-200"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Branches Tab -->
-            <div id="branches-tab" class="tab-content hidden">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-2xl font-bold">Filiais</h2>
-                    <button id="add-branch-btn" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                        <i class="fas fa-plus mr-1"></i> Adicionar Filial
-                    </button>
-                </div>
-
-                <div class="bg-white rounded-lg shadow-sm overflow-hidden">
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nome</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Localização</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Colaboradores</th>
-                                    <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Metas Ativas</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody id="branches-table" class="bg-white divide-y divide-gray-200"></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Settings Tab -->
-            <div id="settings-tab" class="tab-content hidden">
-                <div class="mb-6">
-                    <h2 class="text-2xl font-bold mb-6">Configurações</h2>
-                    
-                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <h3 class="text-lg font-semibold mb-4">Configurações de Recompensas</h3>
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <h4 class="font-medium mb-2">Valores de Recompensa por Nível</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Meta Nível 1</label>
-                                        <div class="flex">
-                                            <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                            <input type="number" id="reward-level-1" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="50">
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Meta Nível 2</label>
-                                        <div class="flex">
-                                            <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                            <input type="number" id="reward-level-2" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="100">
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Meta Nível 3</label>
-                                        <div class="flex">
-                                            <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                            <input type="number" id="reward-level-3" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="200">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h4 class="font-medium mb-2">Multiplicadores por Cargo</h4>
-                                <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Assistente</label>
-                                        <div class="flex">
-                                            <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">x</span>
-                                            <input type="number" id="multiplier-assistant" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="1.0" step="0.1">
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Analista</label>
-                                        <div class="flex">
-                                            <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">x</span>
-                                            <input type="number" id="multiplier-analyst" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="1.2" step="0.1">
-                                        </div>
-                                    </div>
-                                    <div>
-                                        <label class="block text-sm font-medium text-gray-700 mb-1">Gerente</label>
-                                        <div class="flex">
-                                            <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">x</span>
-                                            <input type="number" id="multiplier-manager" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="1.5" step="0.1">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-6">
-                            <button id="save-rewards-btn" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                                Salvar Configurações
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
-                        <h3 class="text-lg font-semibold mb-4">Configurações de Vendas</h3>
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <h4 class="font-medium mb-2">Metas de Vendas por Filial</h4>
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full divide-y divide-gray-200">
-                                        <thead class="bg-gray-100">
-                                            <tr>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Filial</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meta Mensal</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meta Trimestral</th>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Meta Anual</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="bg-white divide-y divide-gray-200">
-                                            <tr>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">Matriz</td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex">
-                                                        <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                                        <input type="number" id="matriz-monthly-goal" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="50000">
-                                                    </div>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex">
-                                                        <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                                        <input type="number" id="matriz-quarterly-goal" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="150000">
-                                                    </div>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex">
-                                                        <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                                        <input type="number" id="matriz-yearly-goal" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="600000">
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">Filial 1</td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex">
-                                                        <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                                        <input type="number" id="filial1-monthly-goal" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="30000">
-                                                    </div>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex">
-                                                        <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                                        <input type="number" id="filial1-quarterly-goal" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="90000">
-                                                    </div>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex">
-                                                        <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                                        <input type="number" id="filial1-yearly-goal" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="360000">
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">Filial 2</td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex">
-                                                        <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                                        <input type="number" id="filial2-monthly-goal" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="25000">
-                                                    </div>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex">
-                                                        <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                                        <input type="number" id="filial2-quarterly-goal" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="75000">
-                                                    </div>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap">
-                                                    <div class="flex">
-                                                        <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                                                        <input type="number" id="filial2-yearly-goal" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" value="300000">
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                            
-                            <div>
-                                <h4 class="font-medium mb-2">Configurações de Importação</h4>
-                                <div class="space-y-2">
-                                    <div class="flex items-center">
-                                        <input id="override-manual-sales" type="checkbox" class="h-4 w-4 text-black focus:ring-black border-gray-300 rounded">
-                                        <label for="override-manual-sales" class="ml-2 block text-sm text-gray-700">
-                                            Substituir vendas manuais ao importar arquivo
-                                        </label>
-                                    </div>
-                                    <div class="flex items-center">
-                                        <input id="auto-match-branches" type="checkbox" class="h-4 w-4 text-black focus:ring-black border-gray-300 rounded" checked>
-                                        <label for="auto-match-branches" class="ml-2 block text-sm text-gray-700">
-                                            Tentar correspondência automática de filiais
-                                        </label>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-6">
-                            <button id="save-sales-settings-btn" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                                Salvar Configurações
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div class="bg-white rounded-lg shadow-sm p-6">
-                        <h3 class="text-lg font-semibold mb-4">Permissões</h3>
-                        
-                        <div class="space-y-4">
-                            <div>
-                                <h4 class="font-medium mb-2">Permissões por Cargo</h4>
-                                <div class="overflow-x-auto">
-                                    <table class="min-w-full divide-y divide-gray-200">
-                                        <thead class="bg-gray-100">
-                                            <tr>
-                                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Cargo</th>
-                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ver Calendário</th>
-                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Adicionar Ações</th>
-                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Ver Colaboradores</th>
-                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Gerenciar Metas</th>
-                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Registrar Vendas</th>
-                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Importar Vendas</th>
-                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Gerenciar Filiais</th>
-                                                <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Configurações</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody class="bg-white divide-y divide-gray-200">
-                                            <tr>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">Assistente</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" class="h-4 w-4" checked disabled>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-assistant-add-actions" class="h-4 w-4">
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-assistant-view-employees" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-assistant-manage-goals" class="h-4 w-4">
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-assistant-register-sales" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-assistant-import-sales" class="h-4 w-4">
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-assistant-manage-branches" class="h-4 w-4">
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-assistant-settings" class="h-4 w-4">
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">Analista</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" class="h-4 w-4" checked disabled>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-analyst-add-actions" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-analyst-view-employees" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-analyst-manage-goals" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-analyst-register-sales" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-analyst-import-sales" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-analyst-manage-branches" class="h-4 w-4">
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-analyst-settings" class="h-4 w-4">
-                                                </td>
-                                            </tr>
-                                            <tr>
-                                                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">Gerente</td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" class="h-4 w-4" checked disabled>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-manager-add-actions" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-manager-view-employees" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-manager-manage-goals" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-manager-register-sales" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-manager-import-sales" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-manager-manage-branches" class="h-4 w-4" checked>
-                                                </td>
-                                                <td class="px-6 py-4 whitespace-nowrap text-center">
-                                                    <input type="checkbox" id="perm-manager-settings" class="h-4 w-4" checked>
-                                                </td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-                        </div>
-                        
-                        <div class="mt-6">
-                            <button id="save-permissions-btn" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                                Salvar Permissões
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </main>
+    <div id="employees-tab" class="tab-content hidden">
+      <table>
+        <thead><tr><th>Nome</th><th>Idade</th><th>Cargo</th><th>Início</th><th>Metas</th><th>Premiações</th><th>Ações</th></tr></thead>
+        <tbody id="employees-table"></tbody>
+      </table>
     </div>
 
-    <!-- Modals -->
-    <!-- Add Event Modal -->
-    <div id="add-event-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold">Adicionar Ação</h3>
-                    <button class="close-modal text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <form id="add-event-form" class="space-y-4">
-                    <div>
-                        <label for="event-title" class="block text-sm font-medium text-gray-700 mb-1">Título</label>
-                        <input type="text" id="event-title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div>
-                        <label for="event-date" class="block text-sm font-medium text-gray-700 mb-1">Data</label>
-                        <input type="date" id="event-date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div>
-                        <label for="event-goal" class="block text-sm font-medium text-gray-700 mb-1">Meta Relacionada</label>
-                        <select id="event-goal" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black">
-                            <option value="">Nenhuma</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="event-description" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                        <textarea id="event-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black"></textarea>
-                    </div>
-                    <div>
-                        <label for="event-assignee" class="block text-sm font-medium text-gray-700 mb-1">Responsável</label>
-                        <select id="event-assignee" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black">
-                        </select>
-                    </div>
-                    <div class="flex justify-end space-x-2 pt-4">
-                        <button type="button" class="close-modal px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                            Cancelar
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                            Adicionar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+    <div id="goals-tab" class="tab-content hidden">
+      <button id="add-goal-btn" class="admin-only">+ Meta</button>
+      <div><h3>Nível 1</h3><div id="goals-level-1"></div></div>
+      <div><h3>Nível 2</h3><div id="goals-level-2"></div></div>
+      <div><h3>Nível 3</h3><div id="goals-level-3"></div></div>
     </div>
 
-    <!-- Add Employee Modal -->
-    <div id="add-employee-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold">Adicionar Colaborador</h3>
-                    <button class="close-modal text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <form id="add-employee-form" class="space-y-4">
-                    <div>
-                        <label for="employee-name" class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                        <input type="text" id="employee-name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div>
-                        <label for="employee-age" class="block text-sm font-medium text-gray-700 mb-1">Idade</label>
-                        <input type="number" id="employee-age" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div>
-                        <label for="employee-position" class="block text-sm font-medium text-gray-700 mb-1">Cargo</label>
-                        <select id="employee-position" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black">
-                            <option value="Assistente">Assistente</option>
-                            <option value="Analista">Analista</option>
-                            <option value="Gerente">Gerente</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="employee-start-date" class="block text-sm font-medium text-gray-700 mb-1">Data de Entrada</label>
-                        <input type="date" id="employee-start-date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div>
-                        <label for="employee-username" class="block text-sm font-medium text-gray-700 mb-1">Nome de Usuário</label>
-                        <input type="text" id="employee-username" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div>
-                        <label for="employee-password" class="block text-sm font-medium text-gray-700 mb-1">Senha</label>
-                        <input type="password" id="employee-password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div class="flex justify-end space-x-2 pt-4">
-                        <button type="button" class="close-modal px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                            Cancelar
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                            Adicionar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+    <div id="branches-tab" class="tab-content hidden">
+      <table>
+        <thead><tr><th>Nome</th><th>Localização</th><th>Colaboradores</th><th>Metas Ativas</th><th>Ações</th></tr></thead>
+        <tbody id="branches-table"></tbody>
+      </table>
     </div>
 
-    <!-- Add Goal Modal -->
-    <div id="add-goal-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold">Adicionar Meta</h3>
-                    <button class="close-modal text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <form id="add-goal-form" class="space-y-4">
-                    <div>
-                        <label for="goal-title" class="block text-sm font-medium text-gray-700 mb-1">Título</label>
-                        <input type="text" id="goal-title" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div>
-                        <label for="goal-description" class="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
-                        <textarea id="goal-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black"></textarea>
-                    </div>
-                    <div>
-                        <label for="goal-level" class="block text-sm font-medium text-gray-700 mb-1">Nível</label>
-                        <select id="goal-level" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black">
-                            <option value="1">Nível 1</option>
-                            <option value="2">Nível 2</option>
-                            <option value="3">Nível 3</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="goal-deadline" class="block text-sm font-medium text-gray-700 mb-1">Prazo</label>
-                        <input type="date" id="goal-deadline" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div class="flex justify-end space-x-2 pt-4">
-                        <button type="button" class="close-modal px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                            Cancelar
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                            Adicionar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+    <div id="sales-tab" class="tab-content hidden">
+      <select id="sales-period">
+        <option value="day">Dia</option>
+        <option value="week">Semana</option>
+        <option value="month" selected>Mês</option>
+        <option value="quarter">Trimestre</option>
+        <option value="year">Ano</option>
+        <option value="custom">Personalizado</option>
+      </select>
+      <div id="custom-date-range" class="hidden">
+        <input type="date" id="sales-start-date" />
+        <input type="date" id="sales-end-date" />
+      </div>
+      <div><span>Total vendido:</span> <span id="total-sales"></span></div>
+      <div><span>Meta:</span> <span id="sales-goal"></span></div>
+      <div class="progress-bar"><div id="sales-progress" class="progress-fill"></div></div>
+      <span id="sales-percentage">0%</span>
+      <button id="import-sales-btn" class="admin-only">Importar CSV</button>
+      <table>
+        <thead><tr><th>Data</th><th>Filial</th><th>Valor</th><th>Origem</th><th>Ações</th></tr></thead>
+        <tbody id="sales-history-table"></tbody>
+      </table>
     </div>
+  </div>
 
-    <!-- Add Branch Modal -->
-    <div id="add-branch-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold">Adicionar Filial</h3>
-                    <button class="close-modal text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <form id="add-branch-form" class="space-y-4">
-                    <div>
-                        <label for="branch-name" class="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                        <input type="text" id="branch-name" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div>
-                        <label for="branch-location" class="block text-sm font-medium text-gray-700 mb-1">Localização</label>
-                        <input type="text" id="branch-location" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div>
-                        <label for="branch-password" class="block text-sm font-medium text-gray-700 mb-1">Senha de Acesso</label>
-                        <input type="password" id="branch-password" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div class="flex justify-end space-x-2 pt-4">
-                        <button type="button" class="close-modal px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                            Cancelar
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                            Adicionar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
+  <!-- Modais -->
+  <div id="add-event-modal" class="modal hidden">
+    <form id="add-event-form">
+      <input id="event-title" placeholder="Título" required />
+      <input id="event-date" type="date" required />
+      <select id="event-goal"></select>
+      <select id="event-assignee"></select>
+      <textarea id="event-description" placeholder="Descrição"></textarea>
+      <button type="submit">Salvar</button>
+      <button type="button" class="close-modal">Cancelar</button>
+    </form>
+  </div>
+
+  <div id="add-sales-modal" class="modal hidden">
+    <form id="add-sales-form">
+      <input id="sales-date" type="date" required />
+      <input id="sales-branch" placeholder="Filial" required />
+      <input id="sales-amount" type="number" placeholder="Valor vendido" required />
+      <textarea id="sales-notes" placeholder="Observações"></textarea>
+      <button type="submit">Salvar</button>
+      <button type="button" class="close-modal">Cancelar</button>
+    </form>
+  </div>
+
+  <div id="view-event-modal" class="modal hidden">
+    <h3 id="view-event-title"></h3>
+    <p id="view-event-date"></p>
+    <div id="view-event-goal-container" class="hidden">
+      <p><strong>Meta:</strong> <span id="view-event-goal"></span></p>
     </div>
+    <p><strong>Responsável:</strong> <span id="view-event-assignee"></span></p>
+    <p id="view-event-description"></p>
+    <button type="button" class="close-modal">Fechar</button>
+  </div>
 
-    <!-- View Event Modal -->
-    <div id="view-event-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 id="view-event-title" class="text-lg font-semibold">Detalhes da Ação</h3>
-                    <button class="close-modal text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <div class="space-y-4">
-                    <div>
-                        <p class="text-sm text-gray-500">Data</p>
-                        <p id="view-event-date" class="font-medium"></p>
-                    </div>
-                    <div id="view-event-goal-container">
-                        <p class="text-sm text-gray-500">Meta Relacionada</p>
-                        <p id="view-event-goal" class="font-medium"></p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500">Descrição</p>
-                        <p id="view-event-description" class=""></p>
-                    </div>
-                    <div>
-                        <p class="text-sm text-gray-500">Responsável</p>
-                        <p id="view-event-assignee" class="font-medium"></p>
-                    </div>
-                    <div class="flex justify-end space-x-2 pt-4">
-                        <button id="delete-event-btn" class="px-4 py-2 border border-red-300 text-red-600 rounded-md hover:bg-red-50 admin-only hidden">
-                            Excluir
-                        </button>
-                        <button id="edit-event-btn" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100 admin-only hidden">
-                            Editar
-                        </button>
-                        <button class="close-modal px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                            Fechar
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
+  <div id="import-sales-modal" class="modal hidden">
+    <p>Importação de vendas a partir de CSV (em breve)</p>
+    <button type="button" class="close-modal">Fechar</button>
+  </div>
 
-    <!-- Add Sales Modal -->
-    <div id="add-sales-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold">Registrar Venda</h3>
-                    <button class="close-modal text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                <form id="add-sales-form" class="space-y-4">
-                    <div>
-                        <label for="sales-date" class="block text-sm font-medium text-gray-700 mb-1">Data</label>
-                        <input type="date" id="sales-date" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                    </div>
-                    <div>
-                        <label for="sales-branch" class="block text-sm font-medium text-gray-700 mb-1">Filial</label>
-                        <select id="sales-branch" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black" required>
-                            <option value="matriz">Matriz</option>
-                            <option value="filial1">Filial 1</option>
-                            <option value="filial2">Filial 2</option>
-                        </select>
-                    </div>
-                    <div>
-                        <label for="sales-amount" class="block text-sm font-medium text-gray-700 mb-1">Valor</label>
-                        <div class="flex">
-                            <span class="inline-flex items-center px-3 border border-r-0 border-gray-300 bg-gray-50 text-gray-500 text-sm rounded-l-md">R$</span>
-                            <input type="number" id="sales-amount" step="0.01" class="flex-1 min-w-0 block w-full px-3 py-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-black focus:border-black" required>
-                        </div>
-                    </div>
-                    <div>
-                        <label for="sales-notes" class="block text-sm font-medium text-gray-700 mb-1">Observações</label>
-                        <textarea id="sales-notes" rows="2" class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black"></textarea>
-                    </div>
-                    <div class="flex justify-end space-x-2 pt-4">
-                        <button type="button" class="close-modal px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                            Cancelar
-                        </button>
-                        <button type="submit" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                            Registrar
-                        </button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-
-    <!-- Import Sales Modal -->
-    <div id="import-sales-modal" class="modal fixed inset-0 bg-black bg-opacity-50 z-50 hidden flex items-center justify-center">
-        <div class="bg-white rounded-lg shadow-lg w-full max-w-3xl mx-4">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="text-lg font-semibold">Importar Vendas</h3>
-                    <button class="close-modal text-gray-400 hover:text-gray-600">
-                        <i class="fas fa-times"></i>
-                    </button>
-                </div>
-                
-                <div id="import-step-1" class="space-y-4">
-                    <p class="text-sm text-gray-600 mb-4">
-                        Selecione um arquivo CSV ou Excel contendo os dados de vendas. O arquivo deve conter colunas para data, filial e valor.
-                    </p>
-                    
-                    <div id="file-drop-area" class="file-drop-area">
-                        <div class="flex flex-col items-center justify-center py-6">
-                            <i class="fas fa-file-upload text-4xl text-gray-400 mb-3"></i>
-                            <p class="text-sm text-gray-600 mb-2">Arraste e solte um arquivo aqui ou</p>
-                            <label for="file-input" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 cursor-pointer">
-                                Selecionar Arquivo
-                            </label>
-                            <input type="file" id="file-input" class="hidden" accept=".csv,.xls,.xlsx">
-                            <p id="file-name" class="text-sm text-gray-600 mt-2"></p>
-                        </div>
-                    </div>
-                    
-                    <div class="flex justify-end space-x-2 pt-4">
-                        <button type="button" class="close-modal px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                            Cancelar
-                        </button>
-                        <button id="import-next-btn" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 opacity-50 cursor-not-allowed" disabled>
-                            Próximo
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="import-step-2" class="space-y-4 hidden">
-                    <p class="text-sm text-gray-600 mb-4">
-                        Verifique a correspondência entre as colunas do arquivo e os campos do sistema.
-                    </p>
-                    
-                    <div class="overflow-x-auto">
-                        <table class="min-w-full divide-y divide-gray-200">
-                            <thead class="bg-gray-100">
-                                <tr>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Campo do Sistema</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Coluna do Arquivo</th>
-                                    <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Exemplo</th>
-                                </tr>
-                            </thead>
-                            <tbody class="bg-white divide-y divide-gray-200">
-                                <tr>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">Data</td>
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <select id="column-date" class="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black text-sm">
-                                        </select>
-                                    </td>
-                                    <td id="example-date" class="px-4 py-3 whitespace-nowrap text-sm text-gray-600"></td>
-                                </tr>
-                                <tr>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">Filial</td>
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <select id="column-branch" class="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black text-sm">
-                                        </select>
-                                    </td>
-                                    <td id="example-branch" class="px-4 py-3 whitespace-nowrap text-sm text-gray-600"></td>
-                                </tr>
-                                <tr>
-                                    <td class="px-4 py-3 whitespace-nowrap text-sm font-medium">Valor</td>
-                                    <td class="px-4 py-3 whitespace-nowrap">
-                                        <select id="column-amount" class="w-full px-3 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-black focus:border-black text-sm">
-                                        </select>
-                                    </td>
-                                    <td id="example-amount" class="px-4 py-3 whitespace-nowrap text-sm text-gray-600"></td>
-                                </tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <div class="flex justify-between space-x-2 pt-4">
-                        <button id="import-back-btn" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                            Voltar
-                        </button>
-                        <button id="import-preview-btn" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                            Visualizar Dados
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="import-step-3" class="space-y-4 hidden">
-                    <p class="text-sm text-gray-600 mb-4">
-                        Verifique a correspondência entre as filiais do arquivo e as filiais do sistema.
-                    </p>
-                    
-                    <div id="branch-matching" class="space-y-2 max-h-60 overflow-y-auto">
-                        <!-- Branch matching items will be added here -->
-                    </div>
-                    
-                    <div class="flex justify-between space-x-2 pt-4">
-                        <button id="import-back-to-columns-btn" class="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-100">
-                            Voltar
-                        </button>
-                        <button id="import-confirm-btn" class="px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800">
-                            Importar Dados
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script src="data.js"></script>
-    <script src="app.js"></script>
-<script>(function(){function c(){var b=a.contentDocument||a.contentWindow.document;if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'9664f9f0f6fb1b33',t:'MTc1MzcxMTk5Ny4wMDAwMDA='};var a=document.createElement('script');a.nonce='';a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+  <script src="app.js"></script>
+</body>
 </html>
