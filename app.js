@@ -1,6 +1,6 @@
-/* app.js - Código completo */
+// app.js completo do sistema de metas
 
-// Variáveis globais
+// ======================= VARIÁVEIS GLOBAIS =======================
 let loginForm, loginScreen, app, userInfo, filialDisplay, logoutBtn, navTabs, tabContents;
 let prevMonthBtn, nextMonthBtn, currentMonthDisplay, calendarGrid;
 let employeesTable, goalsLevel1, goalsLevel2, goalsLevel3;
@@ -12,146 +12,128 @@ let addEventModal, viewEventModal, addSalesModal, importSalesModal;
 let eventGoalSelect, eventAssigneeSelect;
 let adminOnlyElements, closeModalButtons;
 
+// ======================= ESTADO INICIAL =======================
 const state = {
-  employees: [],
-  goals: [],
-  branches: [],
-  sales: [],
-  events: [],
   currentUser: null,
   isAdmin: false,
   currentFilial: '',
   currentMonth: new Date().getMonth(),
   currentYear: new Date().getFullYear(),
+  employees: [],
+  events: [],
+  goals: [],
+  branches: [],
+  sales: [],
+  permissions: {},
+  salesGoals: {},
   selectedDate: null,
   selectedEvent: null,
-  salesGoals: {},
-  permissions: {
-    gerente: { manageGoals: true, addActions: true, registerSales: true, importSales: true, manageBranches: true, settings: true, manageEmployees: true },
-    vendedor: { registerSales: true }
-  }
 };
 
+// ======================= FUNÇÕES AUXILIARES =======================
 function formatDate(date) {
   const options = { year: 'numeric', month: 'long', day: 'numeric' };
   return new Date(date).toLocaleDateString('pt-BR', options);
+}
+
+function formatMonthYear(month, year) {
+  const date = new Date(year, month);
+  return date.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
 }
 
 function formatCurrency(value) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
 }
 
-function renderCalendar() {
-  currentMonthDisplay.textContent = `${state.currentMonth + 1}/${state.currentYear}`;
-  calendarGrid.innerHTML = '<div>Calendário gerado aqui...</div>';
+function getDaysInMonth(month, year) {
+  return new Date(year, month + 1, 0).getDate();
 }
 
-function renderEmployees() {
-  employeesTable.innerHTML = '<tr><td>Sem dados</td></tr>';
+function getFirstDayOfMonth(month, year) {
+  return new Date(year, month, 1).getDay();
 }
 
-function renderGoals() {
-  goalsLevel1.innerHTML = '<div>Nível 1</div>';
-  goalsLevel2.innerHTML = '<div>Nível 2</div>';
-  goalsLevel3.innerHTML = '<div>Nível 3</div>';
+function findEmployeeById(id) {
+  return state.employees.find(employee => employee.id === id);
 }
 
-function renderBranches() {
-  branchesTable.innerHTML = '<tr><td>Sem dados</td></tr>';
+function findGoalById(id) {
+  return state.goals.find(goal => goal.id === id);
 }
 
-function updateAdminVisibility() {
-  adminOnlyElements.forEach(el => {
-    if (state.isAdmin) el.classList.remove('hidden');
-    else el.classList.add('hidden');
-  });
+function getEventsForDate(date) {
+  return state.events.filter(event => event.date === date);
 }
 
-document.addEventListener('DOMContentLoaded', () => {
-  loginForm = document.getElementById('login-form');
-  loginScreen = document.getElementById('login-screen');
-  app = document.getElementById('app');
-  userInfo = document.getElementById('user-info');
-  filialDisplay = document.getElementById('filial-display');
-  logoutBtn = document.getElementById('logout-btn');
-  navTabs = document.querySelectorAll('.nav-tab');
-  tabContents = document.querySelectorAll('.tab-content');
-  prevMonthBtn = document.getElementById('prev-month');
-  nextMonthBtn = document.getElementById('next-month');
-  currentMonthDisplay = document.getElementById('current-month');
-  calendarGrid = document.getElementById('calendar-grid');
-  employeesTable = document.getElementById('employees-table');
-  goalsLevel1 = document.getElementById('goals-level-1');
-  goalsLevel2 = document.getElementById('goals-level-2');
-  goalsLevel3 = document.getElementById('goals-level-3');
-  branchesTable = document.getElementById('branches-table');
-  salesHistoryTable = document.getElementById('sales-history-table');
-  totalSalesDisplay = document.getElementById('total-sales');
-  salesGoalDisplay = document.getElementById('sales-goal');
-  salesProgressBar = document.getElementById('sales-progress');
-  salesPercentageDisplay = document.getElementById('sales-percentage');
-  salesPeriodSelect = document.getElementById('sales-period');
-  salesStartDate = document.getElementById('sales-start-date');
-  salesEndDate = document.getElementById('sales-end-date');
-  customDateRange = document.getElementById('custom-date-range');
-  addEventBtn = document.getElementById('add-event-btn');
-  addGoalBtn = document.getElementById('add-goal-btn');
-  importSalesBtn = document.getElementById('import-sales-btn');
-  addEventModal = document.getElementById('add-event-modal');
-  viewEventModal = document.getElementById('view-event-modal');
-  addSalesModal = document.getElementById('add-sales-modal');
-  importSalesModal = document.getElementById('import-sales-modal');
-  eventGoalSelect = document.getElementById('event-goal');
-  eventAssigneeSelect = document.getElementById('event-assignee');
-  adminOnlyElements = document.querySelectorAll('.admin-only');
-  closeModalButtons = document.querySelectorAll('.close-modal');
+function getSalesForDate(date) {
+  return state.sales.filter(sale => sale.date === date);
+}
 
-  loginForm.addEventListener('submit', (e) => {
-    e.preventDefault();
-    const username = document.getElementById('username').value;
-    const password = document.getElementById('password').value;
-    const filial = document.getElementById('filial-select').value;
-    const user = state.employees.find(emp => emp.username === username && emp.password === password);
+function getTotalSalesForDate(date) {
+  const sales = getSalesForDate(date);
+  return sales.reduce((total, sale) => total + sale.amount, 0);
+}
 
-    if (user) {
-      state.currentUser = user;
-      state.isAdmin = user.isAdmin;
-      state.currentFilial = filial;
+function getTotalSalesForPeriod(startDate, endDate) {
+  return state.sales
+    .filter(sale => {
+      const saleDate = new Date(sale.date);
+      return saleDate >= startDate && saleDate <= endDate;
+    })
+    .reduce((total, sale) => total + sale.amount, 0);
+}
 
-      userInfo.textContent = user.name;
-      filialDisplay.textContent = filial;
-      loginScreen.classList.add('hidden');
-      app.classList.remove('hidden');
+function getTotalSalesForBranch(branch, startDate, endDate) {
+  return state.sales
+    .filter(sale => {
+      const saleDate = new Date(sale.date);
+      return sale.branch === branch && saleDate >= startDate && saleDate <= endDate;
+    })
+    .reduce((total, sale) => total + sale.amount, 0);
+}
 
-      renderCalendar();
-      renderEmployees();
-      renderGoals();
-      renderBranches();
-      updateAdminVisibility();
-    } else {
-      alert('Credenciais inválidas');
-    }
-  });
+function getCurrentPeriodDates() {
+  const today = new Date();
+  let startDate, endDate;
+  switch (salesPeriodSelect.value) {
+    case 'day':
+      startDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), 23, 59, 59);
+      break;
+    case 'week':
+      const dayOfWeek = today.getDay();
+      const diff = today.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1);
+      startDate = new Date(today.getFullYear(), today.getMonth(), diff);
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      break;
+    case 'month':
+      startDate = new Date(today.getFullYear(), today.getMonth(), 1);
+      endDate = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+      break;
+    case 'quarter':
+      const quarter = Math.floor(today.getMonth() / 3);
+      startDate = new Date(today.getFullYear(), quarter * 3, 1);
+      endDate = new Date(today.getFullYear(), (quarter + 1) * 3, 0);
+      break;
+    case 'year':
+      startDate = new Date(today.getFullYear(), 0, 1);
+      endDate = new Date(today.getFullYear(), 11, 31);
+      break;
+    case 'custom':
+      startDate = salesStartDate.value ? new Date(salesStartDate.value) : new Date();
+      endDate = salesEndDate.value ? new Date(salesEndDate.value) : new Date();
+      break;
+  }
+  return { startDate, endDate };
+}
 
-  logoutBtn.addEventListener('click', () => {
-    loginScreen.classList.remove('hidden');
-    app.classList.add('hidden');
-    state.currentUser = null;
-  });
+function showModal(modal) {
+  modal.classList.remove('hidden');
+}
 
-  navTabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      navTabs.forEach(t => t.classList.remove('tab-active'));
-      tab.classList.add('tab-active');
-      tabContents.forEach(content => {
-        content.classList.toggle('hidden', content.id !== `${tab.dataset.tab}-tab`);
-      });
-    });
-  });
+function hideModal(modal) {
+  modal.classList.add('hidden');
+}
 
-  closeModalButtons.forEach(button => {
-    button.addEventListener('click', () => {
-      button.closest('.modal').classList.add('hidden');
-    });
-  });
-});
+// (continua... na próxima mensagem)
