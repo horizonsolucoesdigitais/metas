@@ -1,4 +1,5 @@
 // app.js — Sistema de Metas (Firestore em tempo real, sem Storage)
+// v1.1 — UX de modais (ESC, clique no backdrop, travar scroll), atalhos de teclado e toasts visuais
 // Autor: Horizon (Lucas) + GPT
 // Observações importantes:
 // - Usa Firebase Compat (importado no index.html) e firebase.js para config/serviços.
@@ -107,41 +108,44 @@
   // ==== Utilitários UI ====
   function show(elm) { elm.classList.remove('hidden'); }
   function hide(elm) { elm.classList.add('hidden'); }
-  function toggleModal(elm, open) { open ? show(elm) : hide(elm); }
+  function toggleModal(elm, open) {
+    if (open) {
+      show(elm);
+      elm.setAttribute('aria-hidden', 'false');
+      document.body.style.overflow = 'hidden'; // trava scroll ao abrir modal
+    } else {
+      hide(elm);
+      elm.setAttribute('aria-hidden', 'true');
+      // Se nenhum modal estiver aberto, libera o scroll
+      const anyOpen = [el.modalLogin, el.modalMeta, el.modalColab].some(m => m && !m.classList.contains('hidden'));
+      if (!anyOpen) document.body.style.overflow = '';
+    }
+  }
 
+  // Toast visual simples (sem dependências)
   function toast(msg, type = 'info') {
-    // simples alerta textual; pode trocar por um componente mais bonito se quiser
-    console.log(`[${type.toUpperCase()}]`, msg);
-  }
-
-  function formatCurrency(v) {
-    const n = Number(v || 0);
-    return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
-  }
-
-  function formatDateISO(d) {
-    if (!d) return '';
-    const dt = (d instanceof Date) ? d : new Date(d);
-    const y = dt.getFullYear();
-    const m = String(dt.getMonth() + 1).padStart(2, '0');
-    const day = String(dt.getDate()).padStart(2, '0');
-    return `${y}-${m}-${day}`;
-  }
-
-  function parseDate(value) {
-    if (!value) return null;
-    const d = new Date(value);
-    return isNaN(d.getTime()) ? null : d;
-  }
-
-  // Base64 helper (para salvar arquivos pequenos no Firestore)
-  function fileToBase64(file) {
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onload = () => resolve(reader.result);
-      reader.onerror = reject;
-      reader.readAsDataURL(file); // data:*/*;base64,XXXX
-    });
+    if (!document.getElementById('toast-stack')) {
+      const stack = document.createElement('div');
+      stack.id = 'toast-stack';
+      stack.className = 'fixed z-[100] top-4 right-4 flex flex-col gap-2';
+      document.body.appendChild(stack);
+    }
+    const toastEl = document.createElement('div');
+    const base = 'px-4 py-2 rounded-xl shadow-lg border text-sm bg-white';
+    const byType = {
+      info: 'border-slate-200',
+      success: 'border-emerald-300',
+      error: 'border-rose-300',
+      warning: 'border-amber-300',
+    };
+    toastEl.className = `${base} ${byType[type] || byType.info}`;
+    toastEl.textContent = String(msg || '');
+    document.getElementById('toast-stack').appendChild(toastEl);
+    setTimeout(() => {
+      toastEl.style.opacity = '0';
+      toastEl.style.transition = 'opacity .2s ease';
+      setTimeout(() => toastEl.remove(), 200);
+    }, 2500);
   }
 
   // ==== Tabs ====
@@ -165,6 +169,40 @@
     if (target) show(target);
   }
 
+  // ==== UX Global (fechar modal por backdrop, ESC e atalhos) ====
+  function attachGlobalModalUX() {
+    // fecha modal ao clicar no backdrop
+    [el.modalLogin, el.modalMeta, el.modalColab].forEach((m) => {
+      if (!m) return;
+      m.addEventListener('click', (e) => {
+        if (e.target === m) toggleModal(m, false);
+      });
+    });
+
+    // ESC fecha o modal aberto + atalhos
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        [el.modalMeta, el.modalColab, el.modalLogin].forEach((m) => {
+          if (m && !m.classList.contains('hidden')) toggleModal(m, false);
+        });
+      }
+
+      // Atalhos rápidos (ignora se focado em input/textarea)
+      const tag = (document.activeElement && document.activeElement.tagName || '').toLowerCase();
+      const typing = tag === 'input' || tag === 'textarea' || document.activeElement?.isContentEditable;
+      if (typing) return;
+
+      if (e.key.toLowerCase() === 'm') {
+        // abrir Nova Meta
+        if (el.btnNovaMeta) el.btnNovaMeta.click();
+      }
+      if (e.key.toLowerCase() === 'c') {
+        // abrir Colaboradores
+        if (el.btnAbrirColab) el.btnAbrirColab.click();
+      }
+    });
+  }
+
   // ==== Auth ====
   function attachAuthUI() {
     // abrir/fechar modal
@@ -178,7 +216,7 @@
       try {
         const email = el.loginEmail.value.trim();
         const pass = el.loginPassword.value;
-        const cred = await auth.signInWithEmailAndPassword(email, pass);
+        await auth.signInWithEmailAndPassword(email, pass);
         if (el.loginRemember.checked) {
           await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
         } else {
@@ -702,7 +740,11 @@
     for (let day = 1; day <= daysInMonth; day++) {
       const cellDate = new Date(d.getFullYear(), d.getMonth(), day);
       const cell = document.createElement('div');
-      cell.className = 'h-24 border border-slate-200 rounded-xl p-2 flex flex-col gap-1 text-left bg-white';
+      const today = new Date();
+      const isToday = today.getFullYear() === cellDate.getFullYear() &&
+                      today.getMonth() === cellDate.getMonth() &&
+                      today.getDate() === cellDate.getDate();
+      cell.className = 'h-24 border rounded-xl p-2 flex flex-col gap-1 text-left bg-white ' + (isToday ? 'border-slate-300 ring-2 ring-slate-900/10' : 'border-slate-200');
 
       // header do dia
       const head = document.createElement('div');
@@ -750,6 +792,7 @@
     attachImportUI();
     attachColabUI();
     attachCalendarUI();
+    attachGlobalModalUX();
 
     // Habilita submit de criação de meta por padrão (para o fallback de edição funcionar)
     el.formMeta.addEventListener('submit', async (e) => {
