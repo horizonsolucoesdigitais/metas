@@ -7,13 +7,14 @@
 
 // Cole aqui o objeto de configuração do seu projeto Firebase
 const firebaseConfig = {
-  apiKey: "COLE_SUA_API_KEY",
-  authDomain: "SEU_PROJETO.firebaseapp.com",
-  projectId: "SEU_PROJETO",
-  storageBucket: "SEU_PROJETO.appspot.com",
-  messagingSenderId: "000000000000",
-  appId: "1:000000000000:web:xxxxxxxxxxxxxxxx",
-  measurementId: "G-XXXXXXXXXX" // opcional
+  apiKey: "AIzaSyDZPv-uez0lKz4sr8O56bh4ZjX4KMR1Wi8",
+  authDomain: "metas-736c1.firebaseapp.com",
+  databaseURL: "https://metas-736c1-default-rtdb.firebaseio.com",
+  projectId: "metas-736c1",
+  storageBucket: "metas-736c1.firebasestorage.app",
+  messagingSenderId: "678513445596",
+  appId: "1:678513445596:web:0c65511ae1fe2f40b68219",
+  measurementId: "G-DXCCVV6CN6"
 };
 
 // Inicializa o app apenas uma vez
