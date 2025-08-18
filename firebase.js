@@ -17,30 +17,43 @@ const firebaseConfig = {
   measurementId: "G-DXCCVV6CN6"
 };
 
-// Inicializa o app apenas uma vez
-if (!firebase.apps.length) {
-  firebase.initializeApp(firebaseConfig);
-}
+// 🟢 2) Inicializa o app
+firebase.initializeApp(firebaseConfig);
 
-// Serviços que usaremos no projeto
+// 🔐 3) Serviços que usamos
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
 
-// Ajustes úteis
-try {
-  // Evita erro ao salvar campos undefined
-  db.settings?.({ ignoreUndefinedProperties: true });
-} catch (e) {
-  console.warn("Aviso Firestore settings:", e);
-}
+// (opcional) Ajustes do Firestore
+// db.settings({ ignoreUndefinedProperties: true });
 
-// Expondo de forma explícita para uso no app.js
-window.firebaseApp = {
-  firebase, // SDK compat
-  auth,
-  db,
-  storage,
+// 🔓 4) Persistência de sessão padrão (pode ser trocada no login)
+auth.setPersistence(firebase.auth.Auth.Persistence.SESSION).catch(() => {});
+
+// 🌍 5) Expor no escopo global para uso no app.js
+window.firebaseApp = { firebase, auth, db };
+
+// ✅ 6) Helpers úteis (caso precise em outros pontos do app)
+window.firebaseHelpers = {
+  nowISO: () => new Date().toISOString(),
+  // serverTimestamp: firebase.firestore.FieldValue.serverTimestamp, // se quiser usar server-side timestamp
 };
 
-// Dica: no console do navegador você pode testar: window.firebaseApp.auth.currentUser
+/*
+Como preencher a config:
+const firebaseConfig = {
+  apiKey: "AI...",
+  authDomain: "seu-projeto.firebaseapp.com",
+  projectId: "seu-projeto",
+  storageBucket: "seu-projeto.appspot.com",
+  messagingSenderId: "1234567890",
+  appId: "1:1234567890:web:abcdef012345",
+};
+
+Checklist depois de configurar:
+1) Authentication → Métodos de login → E-mail/senha ATIVADO.
+2) Firestore criado (modo teste durante o desenvolvimento).
+3) Em Authentication → Configurações → Domínios autorizados → inclua o domínio onde roda (ex.: localhost, 127.0.0.1, *.github.io).
+4) (Opcional) Crie em Firestore a coleção "roles" e adicione { role: "admin" } no doc de UID do seu usuário administrador para liberar o modal de Filiais.
+*/
+
